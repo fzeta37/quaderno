@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Test Dropbox</title>
+<style>
+  body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #f4f5f7; color: #1a1a1a; }
+  h1 { font-size: 20px; }
+  button { display: block; width: 100%; padding: 14px; margin: 12px 0; font-size: 15px; border: none; border-radius: 10px; background: #0061ff; color: #fff; font-weight: 600; cursor: pointer; }
+  button:disabled { opacity: 0.4; }
+  #log { background: #fff; border-radius: 10px; padding: 14px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin-top: 16px; min-height: 100px; }
+  .ok { color: #0a7d28; }
+  .err { color: #c0392b; }
+</style>
+</head>
+<body>
+<h1>Test connessione Dropbox</h1>
+<p style="font-size:13px;color:#666;">Verifica che il browser riesca, da solo, a scrivere un file nel tuo Dropbox senza server.</p>
+
+<button id="connectBtn">1 · Collega Dropbox</button>
+<button id="writeBtn" disabled>2 · Scrivi file di prova</button>
+<button id="readBtn" disabled>3 · Rileggi il file</button>
+
+<div id="log">In attesa…</div>
+
+<script>
+const APP_KEY = 'cj1r91qe3s8xwiz';
+const REDIRECT_URI = 'https://fzeta37.github.io/quaderno/';
+const TEST_FILENAME = '/test-quaderno.txt';
+
+const log = (msg, cls) => {
+  const el = document.getElementById('log');
+  const line = document.createElement('div');
+  if (cls) line.className = cls;
+  line.textContent = msg;
+  el.appendChild(line);
+};
+
+// --- PKCE helpers ---
+function base64url(buffer) {
+  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
+    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+}
+async function sha256(str) {
+  const data = new TextEncoder().encode(str);
+  return await crypto.subtle.digest('SHA-256', data);
+}
+function randomString(len) {
+  const arr = new Uint8Array(len);
+  crypto.getRandomValues(arr);
+  return Array.from(arr, b => ('0' + b.toString(16)).slice(-2)).join('');
+}
+
+function getToken() { return sessionStorage.getItem('dbx_token'); }
+
+// --- Step 1: avvia OAuth ---
+document.getElementById('connectBtn').onclick = async () => {
+  const verifier = randomString(64);
+  sessionStorage.setItem('pkce_verifier', verifier);
+  const challenge = base64url(await sha256(verifier));
+  const url = `https://www.dropbox.com/oauth2/authorize?client_id=${APP_KEY}` +
+    `&response_type=code&code_challenge=${challenge}&code_challenge_method=S256` +
+    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&token_access_type=online`;
+  window.location.href = url;
+};
+
+// --- Al ritorno dal redirect: scambia il code per un token ---
+async function handleRedirect() {
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (!code) return;
+  const verifier = sessionStorage.getItem('pkce_verifier');
+  log('Ricevuto codice di autorizzazione, scambio in corso…');
+  try {
+    const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({
+        code, grant_type: 'authorization_code',
+        client_id: APP_KEY, code_verifier: verifier,
+        redirect_uri: REDIRECT_URI
+      })
+    });
+    const data = await resp.json();
+    if (data.access_token) {
+      sessionStorage.setItem('dbx_token', data.access_token);
+      log('✓ Collegato a Dropbox!', 'ok');
+      document.getElementById('writeBtn').disabled = false;
+      document.getElementById('readBtn').disabled = false;
+      window.history.replaceState({}, '', REDIRECT_URI); // pulisce l'URL
+    } else {
+      log('✗ Errore token: ' + JSON.stringify(data), 'err');
+    }
+  } catch (e) {
+    log('✗ Errore rete: ' + e.message, 'err');
+  }
+}
+
+// --- Step 2: scrivi file ---
+document.getElementById('writeBtn').onclick = async () => {
+  const token = getToken();
+  if (!token) { log('Non collegato.', 'err'); return; }
+  log('Scrivo il file di prova…');
+  try {
+    const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Dropbox-API-Arg': JSON.stringify({ path: TEST_FILENAME, mode: 'overwrite', mute: true }),
+        'Content-Type': 'application/octet-stream'
+      },
+      body: 'Prova riuscita il ' + new Date().toLocaleString('it-IT')
+    });
+    const data = await resp.json();
+    if (data.name) log('✓ File scritto: ' + data.path_display, 'ok');
+    else log('✗ Errore scrittura: ' + JSON.stringify(data), 'err');
+  } catch (e) {
+    log('✗ Errore rete: ' + e.message, 'err');
+  }
+};
+
+// --- Step 3: rileggi file ---
+document.getElementById('readBtn').onclick = async () => {
+  const token = getToken();
+  if (!token) { log('Non collegato.', 'err'); return; }
+  log('Rileggo il file…');
+  try {
+    const resp = await fetch('https://content.dropboxapi.com/2/files/download', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'Dropbox-API-Arg': JSON.stringify({ path: TEST_FILENAME })
+      }
+    });
+    if (resp.ok) {
+      const text = await resp.text();
+      log('✓ Contenuto letto: "' + text + '"', 'ok');
+    } else {
+      const data = await resp.json();
+      log('✗ Errore lettura: ' + JSON.stringify(data), 'err');
+    }
+  } catch (e) {
+    log('✗ Errore rete: ' + e.message, 'err');
+  }
+};
+
+// se torniamo dal redirect con un ?code=..., gestiscilo
+if (getToken()) {
+  log('Già collegato in questa sessione.', 'ok');
+  document.getElementById('writeBtn').disabled = false;
+  document.getElementById('readBtn').disabled = false;
+} else {
+  handleRedirect();
+}
+</script>
+</body>
+</html>
