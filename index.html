@@ -2,157 +2,754 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Test Dropbox</title>
+<title>Quaderno progetti</title>
 <style>
-  body { font-family: -apple-system, sans-serif; max-width: 600px; margin: 40px auto; padding: 0 20px; background: #f4f5f7; color: #1a1a1a; }
-  h1 { font-size: 20px; }
-  button { display: block; width: 100%; padding: 14px; margin: 12px 0; font-size: 15px; border: none; border-radius: 10px; background: #0061ff; color: #fff; font-weight: 600; cursor: pointer; }
-  button:disabled { opacity: 0.4; }
-  #log { background: #fff; border-radius: 10px; padding: 14px; font-family: monospace; font-size: 12px; white-space: pre-wrap; word-break: break-all; margin-top: 16px; min-height: 100px; }
-  .ok { color: #0a7d28; }
-  .err { color: #c0392b; }
+  @font-face { font-family: 'system-mono'; src: local('SF Mono'), local('Consolas'), local('Menlo'); }
+  :root {
+    --bg: #EEEFF2;
+    --panel: #FFFFFF;
+    --panel-2: #F4F5F7;
+    --line: #E3E4E8;
+    --ink: #15171C;
+    --ink-dim: #86898F;
+    --accent: #E0A640;
+    --teal: #3C8F86;
+    --rust: #C96A4E;
+    --shadow: 0 8px 24px rgba(20,20,25,0.08);
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; height: 100%;
+    background: var(--bg); color: var(--ink);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
+  }
+  .mono { font-family: "SF Mono", "Consolas", "Menlo", monospace; }
+
+  .app { display: flex; flex-direction: column; height: 100vh; }
+
+  .pages { flex: 1; position: relative; overflow: hidden; }
+  .page { position: absolute; inset: 0; display: none; flex-direction: column; }
+  .page.active { display: flex; }
+
+  #writePage { padding: 0; position: relative; }
+  .hero-full {
+    position: relative; width: 100%; height: 34vh; flex-shrink: 0; overflow: hidden;
+    background: linear-gradient(135deg, #0b1020, #1c2440);
+  }
+  .hero-full img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .hero-full::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(180deg, rgba(0,0,0,0) 45%, rgba(8,8,12,0.75) 100%);
+  }
+  .hero-full.fallback::before {
+    content: ''; position: absolute; inset: 0;
+    background-image:
+      radial-gradient(2px 2px at 20% 30%, rgba(255,210,120,0.9), transparent),
+      radial-gradient(2px 2px at 65% 20%, rgba(255,180,90,0.8), transparent),
+      radial-gradient(1.5px 1.5px at 80% 55%, rgba(255,230,160,0.7), transparent),
+      radial-gradient(1.5px 1.5px at 40% 70%, rgba(255,200,110,0.6), transparent),
+      radial-gradient(2px 2px at 90% 80%, rgba(255,190,100,0.7), transparent),
+      radial-gradient(1.5px 1.5px at 10% 85%, rgba(255,220,140,0.6), transparent);
+  }
+  .hero-text { position: absolute; left: 20px; bottom: 18px; right: 20px; z-index: 1; color: #fff; }
+  .hero-text .greet { font-size: 21px; font-weight: 700; margin: 0 0 2px; }
+  .hero-text .date { font-size: 12px; opacity: 0.85; text-transform: capitalize; }
+
+  textarea.bigwrite {
+    flex: 1; width: 100%; resize: none; border: none; outline: none;
+    background: transparent; color: var(--ink);
+    font-family: inherit; font-size: 17px; line-height: 1.6;
+    padding: 20px 20px 110px;
+  }
+  textarea.bigwrite::placeholder { color: var(--ink-dim); }
+
+  .page-header {
+    padding: 20px 18px 12px; display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0;
+  }
+  .page-header h1 { font-size: 20px; letter-spacing: -0.01em; margin: 0; font-weight: 700; color: var(--ink); }
+  .page-header .sub { font-size: 11px; color: var(--ink-dim); }
+
+  .page-body { flex: 1; overflow-y: auto; padding: 0 18px 100px; }
+
+  button {
+    font-family: inherit; font-size: 12.5px; cursor: pointer;
+    border-radius: 999px; border: 1px solid var(--line);
+    background: var(--panel-2); color: var(--ink); padding: 8px 14px;
+  }
+  button:hover { border-color: var(--ink); }
+  button:disabled { opacity: 0.4; cursor: default; }
+  .hint { font-size: 11px; color: var(--ink-dim); }
+
+  .bottombar { position: absolute; left: 18px; bottom: 18px; display: flex; align-items: center; gap: 12px; z-index: 5; }
+  .fab-save {
+    width: 56px; height: 56px; border-radius: 50%; border: none;
+    background: var(--ink); color: #fff; font-size: 22px;
+    display: flex; align-items: center; justify-content: center; padding: 0;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+  }
+  .fab-save:hover { filter: brightness(1.3); border-color: transparent; }
+  .navpill {
+    display: flex; gap: 2px; background: var(--ink); border-radius: 999px;
+    padding: 6px; box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+  }
+  .navpill .navbtn {
+    width: 44px; height: 44px; border-radius: 50%; border: none; padding: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 17px; color: rgba(255,255,255,0.55); background: transparent;
+  }
+  .navpill .navbtn.active { background: #fff; color: var(--ink); }
+  .navpill .navbtn:hover { border-color: transparent; }
+
+  .group { margin-bottom: 20px; }
+  .group-title {
+    font-size: 11px; letter-spacing: 0.04em; color: var(--cat-color, var(--teal));
+    margin-bottom: 8px; display: flex; align-items: center; gap: 6px; font-weight: 600;
+  }
+  .group-title .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--cat-color, var(--teal)); }
+  .group-title .count { color: var(--ink-dim); font-weight: normal; }
+
+  .note {
+    background: var(--panel); box-shadow: var(--shadow);
+    border-radius: 18px; padding: 14px 16px; margin-bottom: 10px;
+    border-left: 4px solid var(--cat-color, var(--teal));
+  }
+  .note-text { font-size: 14px; line-height: 1.5; white-space: pre-wrap; }
+  .note-meta { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 10.5px; color: var(--ink-dim); flex-wrap: wrap; }
+  .tag { background: var(--panel-2); padding: 3px 9px; border-radius: 999px; border: 1px solid var(--line); }
+  .custom-cats { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .custom-tag { background: rgba(224,166,64,0.12); border: 1px solid var(--accent); color: #9c6a1c; }
+  .custom-tag .rm { cursor: pointer; opacity: 0.7; margin-left: 2px; }
+  .custom-tag .rm:hover { opacity: 1; }
+  .reminder-tag { background: rgba(60,143,134,0.12); border: 1px solid var(--teal); color: #276b64; cursor: pointer; }
+  .confirm-del { background: var(--rust); color: #fff; border-color: var(--rust); font-weight: 600; }
+  .addcat { padding: 3px 10px; font-size: 10.5px; border-style: dashed; color: var(--ink-dim); background: transparent; }
+  .note-links { font-size: 10.5px; color: var(--ink-dim); margin-top: 6px; }
+  .note-links a { color: var(--teal); text-decoration: none; cursor: pointer; }
+  .note-actions { margin-left: auto; display: flex; gap: 6px; }
+  .note-actions button { padding: 4px 10px; font-size: 10.5px; }
+  .pending { color: var(--ink-dim); font-style: italic; }
+
+  svg text { fill: var(--ink); font-size: 10px; font-family: "SF Mono", monospace; }
+  .empty { color: var(--ink-dim); font-size: 13px; padding: 30px 0; text-align: center; }
+
+  #mapPage .page-body { padding: 0 18px 100px; }
+  #mapCanvasHost { border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+
+  .cat-section { margin-bottom: 24px; }
+  .cat-h { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
+  .cat-count { color: var(--ink-dim); font-weight: 400; font-size: 12px; }
+  .cat-desc { font-size: 11.5px; color: var(--ink-dim); margin-bottom: 10px; line-height: 1.4; }
+  .cat-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cat-chip { font-size: 12px; padding: 4px 10px; border-radius: 999px; display: inline-flex; align-items: center; gap: 4px; }
+  .cat-chip.perm { background: rgba(224,166,64,0.14); border: 1px solid var(--accent); color: #9c6a1c; }
+  .cat-chip.ban { background: rgba(201,106,78,0.12); border: 1px solid var(--rust); color: #a8442a; text-decoration: line-through; }
+  .cat-chip .rm { cursor: pointer; opacity: 0.65; }
+  .cat-chip .rm:hover { opacity: 1; }
+  .cat-empty { font-size: 11.5px; color: var(--ink-dim); font-style: italic; }
+  .cat-row { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--line); }
+  .cat-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+  .cat-name { font-size: 13.5px; flex: 1; }
+  .cat-num { font-size: 11px; color: var(--ink-dim); background: var(--panel-2); border-radius: 999px; padding: 1px 8px; }
+  .cat-acts { display: flex; gap: 4px; }
+  .cat-acts button { font-size: 10.5px; padding: 4px 8px; }
+
+  ::-webkit-scrollbar { width: 8px; }
+  ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 4px; }
+
+  @media (min-width: 640px) {
+    body { background: #d8dade; display: flex; justify-content: center; }
+    .app {
+      max-width: 430px; width: 100%; height: 100vh;
+      box-shadow: 0 0 60px rgba(0,0,0,0.18);
+      position: relative; overflow: hidden;
+    }
+  }
 </style>
 </head>
 <body>
-<h1>Test connessione Dropbox</h1>
-<p style="font-size:13px;color:#666;">Verifica che il browser riesca, da solo, a scrivere un file nel tuo Dropbox senza server.</p>
+<div class="app">
+  <div class="pages">
+    <section class="page active" id="writePage">
+      <div class="hero-full" id="heroFull">
+        <img id="heroImg" src="" alt="">
+        <div class="hero-text">
+          <p class="greet" id="heroGreet">Ciao</p>
+          <p class="date" id="heroDate"></p>
+        </div>
+      </div>
+      <textarea id="input" class="bigwrite" placeholder="Scrivi a ruota libera — una gara, un'idea, un problema tecnico incontrato oggi..."></textarea>
+      <span class="hint mono" id="micHint" style="position:absolute; left:18px; bottom:88px;">usa il microfono della tastiera per dettare qui dentro</span>
+    </section>
 
-<button id="connectBtn">1 · Collega Dropbox</button>
-<button id="writeBtn" disabled>2 · Scrivi file di prova</button>
-<button id="readBtn" disabled>3 · Rileggi il file</button>
+    <section class="page" id="listPage">
+      <div class="page-header">
+        <h1>Note</h1>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span class="sub mono" id="statusLine">pronto</span>
+          <button id="authBtn" style="padding:5px 10px; font-size:11px;">Collega Dropbox</button>
+        </div>
+      </div>
+      <div class="page-body" id="listView"></div>
+    </section>
 
-<div id="log">In attesa…</div>
+    <section class="page" id="mapPage">
+      <div class="page-header"><h1>Mappa</h1></div>
+      <div class="page-body">
+        <div style="position:relative; height:100%;">
+          <div id="mapCanvasHost" style="width:100%; height:100%; cursor: grab;"></div>
+          <div class="mono" style="position:absolute; top:14px; right:20px; font-size:10.5px; color:var(--ink-dim); background:rgba(255,255,255,0.85); padding:3px 8px; border-radius:8px;">clic su un nodo per aprire la nota</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="page" id="catPage">
+      <div class="page-header"><h1>Categorie</h1></div>
+      <div class="page-body" id="catView"></div>
+    </section>
+  </div>
+
+  <div class="bottombar">
+    <button id="saveBtn" class="fab-save" title="Salva">💾</button>
+    <nav class="navpill">
+      <button class="navbtn active" data-page="writePage" title="Scrivi">✎</button>
+      <button class="navbtn" data-page="listPage" title="Note">🏷</button>
+      <button class="navbtn" data-page="mapPage" title="Mappa">📍</button>
+      <button class="navbtn" data-page="catPage" title="Categorie">☰</button>
+    </nav>
+  </div>
+</div>
 
 <script>
-const APP_KEY = 'cj1r91qe3s8xwiz';
-const REDIRECT_URI = 'https://fzeta37.github.io/quaderno/';
-const TEST_FILENAME = '/test-quaderno.txt';
+const DRIVE_FILE_NAME = 'quaderno-progetti-dati.json';
+let notes = [];
+let permanentCategories = [];
+let bannedCategories = [];
+const pendingDelete = new Set();
+let recognizing = false;
 
-const log = (msg, cls) => {
-  const el = document.getElementById('log');
-  const line = document.createElement('div');
-  if (cls) line.className = cls;
-  line.textContent = msg;
-  el.appendChild(line);
-};
-
-// --- PKCE helpers ---
-function base64url(buffer) {
-  return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-    .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-}
-async function sha256(str) {
-  const data = new TextEncoder().encode(str);
-  return await crypto.subtle.digest('SHA-256', data);
-}
-function randomString(len) {
-  const arr = new Uint8Array(len);
-  crypto.getRandomValues(arr);
-  return Array.from(arr, b => ('0' + b.toString(16)).slice(-2)).join('');
+const CATEGORY_COLORS = {};
+const PALETTE = ['#e0a640','#4fa9a2','#c96a4e','#7a9ec9','#9b7fc9','#7fc98f','#c97fa8','#c9b37f'];
+function colorFor(cat) {
+  if (!CATEGORY_COLORS[cat]) {
+    const idx = Object.keys(CATEGORY_COLORS).length % PALETTE.length;
+    CATEGORY_COLORS[cat] = PALETTE[idx];
+  }
+  return CATEGORY_COLORS[cat];
 }
 
-function getToken() { return sessionStorage.getItem('dbx_token'); }
+function setStatus(t) { document.getElementById('statusLine').textContent = t; }
 
-// --- Step 1: avvia OAuth ---
-document.getElementById('connectBtn').onclick = async () => {
-  const verifier = randomString(64);
-  sessionStorage.setItem('pkce_verifier', verifier);
-  const challenge = base64url(await sha256(verifier));
-  const url = `https://www.dropbox.com/oauth2/authorize?client_id=${APP_KEY}` +
-    `&response_type=code&code_challenge=${challenge}&code_challenge_method=S256` +
-    `&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&token_access_type=online`;
+const SCHEMA_VERSION = 1;
+const DBX_APP_KEY = 'cj1r91qe3s8xwiz';
+const DBX_REDIRECT = 'https://fzeta37.github.io/quaderno/';
+const DBX_FILE = '/quaderno-note.json';
+
+const SEED_NOTES = [{"id":"mtrpwf1x8c73p","text":"Gli interventi con Bozzi per la fibra il giorno 1 e 2 settembre sono stati fallimentari. Milano","created":"2026-09-07T20:53:07.509Z","category":"Gara Milano","tags":["fibra","Bozzi","interventi","semafori"],"links":["mtrpvv575a2ts","mtrpumqjiq5zu"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrpvv575a2ts","text":"Sentire Luigi e Pierpaolo per la Fibra degli impianti semaforici di Milano","created":"2026-09-07T20:52:41.707Z","category":"Gara Milano","tags":["fibra","semafori","contatti","infrastruttura"],"links":["mtrpumqjiq5zu","mtrpu1vtxq3xk","mtrpuv1bb2pzg"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrpuv1bb2pzg","text":"Sentire Grizzi per gli SCC Swarco","created":"2026-09-07T20:51:54.911Z","category":"Gara Milano","tags":["Grizzi","SCC","Swarco","contatto"],"links":["mtrpumqjiq5zu","mtrpu1vtxq3xk"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrpumqjiq5zu","text":"Per i sottopassi di Milano occorre sentire Finocchio, Bianchessi e Grizzi","created":"2026-09-07T20:51:44.155Z","category":"Gara Milano","tags":["sottopassi","contatti","Finocchio","Bianchessi","Grizzi"],"links":["mtrpu1vtxq3xk","mtrprzx8brfbu"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrpu1vtxq3xk","text":"Milano: ordinare 50 SCC Swarco","created":"2026-09-07T20:51:17.129Z","category":"Non categorizzato","tags":["Milano","SCC","Swarco","ordine","materiali"],"links":["mtrptr4uysszb"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrptr4uysszb","text":"I semafori a Palermo li facciamo con SCAE per quanto riguarda i regolatori e con Swarco per la parte di centralizzazione","created":"2026-09-07T20:51:03.198Z","category":"Gara Palermo","tags":["semafori","SCAE","Swarco","centralizzazione","regolatori"],"links":["mtrpsv1zyd9m9"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrpt562n9724","text":"Sentire giada entro venerdì per gli economici di desio","created":"2026-09-07T20:50:34.730Z","category":"Gara Desio","tags":["economici","giada","scadenza"],"links":["mtrpsv1zyd9m9","mtrprzx8brfbu","mtrprdq9w9nkw"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrpsv1zyd9m9","text":"Desio: fornitore semafori SCAE. Regolatori Orione e lanterne trafled. Aggiungere anche i DNV sugli impianti da rifare in totalità.","created":"2026-09-07T20:50:21.623Z","category":"Non categorizzato","tags":[],"links":[],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrprzx8brfbu","text":"Desio: aggiungere lampeggiante in via Calatafimi e 2 sottopassi gestiti sotto la ferrovia","created":"2026-09-07T20:49:41.276Z","category":"Gara Desio","tags":["lampeggiante","via Calatafimi","sottopassi","ferrovia"],"links":["mtrprdq9w9nkw"],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"},{"id":"mtrprdq9w9nkw","text":"Desio: per project fare 10 impianti semaforici di cui 6 completi e 4 solo lanterne","created":"2026-09-07T20:49:12.513Z","category":"Gara Desio","tags":["semafori","project financing","impianti semaforici","lanterne"],"links":[],"customCategories":[],"reminderDate":null,"analyzing":false,"source":"text"}];
+
+// ---------- OAUTH DROPBOX (PKCE, persistente con refresh token) ----------
+function b64url(buf){return btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');}
+async function sha256(s){return await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));}
+function randStr(n){const a=new Uint8Array(n);crypto.getRandomValues(a);return Array.from(a,b=>('0'+b.toString(16)).slice(-2)).join('');}
+
+function getRefresh(){return localStorage.getItem('dbx_refresh');}
+function setRefresh(t){localStorage.setItem('dbx_refresh', t);}
+let accessToken = null;
+
+async function dbxLogin(){
+  const verifier = randStr(64);
+  localStorage.setItem('pkce_verifier', verifier);
+  const challenge = b64url(await sha256(verifier));
+  const url = `https://www.dropbox.com/oauth2/authorize?client_id=${DBX_APP_KEY}`+
+    `&response_type=code&code_challenge=${challenge}&code_challenge_method=S256`+
+    `&redirect_uri=${encodeURIComponent(DBX_REDIRECT)}&token_access_type=offline`;
   window.location.href = url;
-};
+}
 
-// --- Al ritorno dal redirect: scambia il code per un token ---
-async function handleRedirect() {
-  const params = new URLSearchParams(window.location.search);
-  const code = params.get('code');
-  if (!code) return;
-  const verifier = sessionStorage.getItem('pkce_verifier');
-  log('Ricevuto codice di autorizzazione, scambio in corso…');
+async function dbxExchangeCode(code){
+  const verifier = localStorage.getItem('pkce_verifier');
+  const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({code, grant_type:'authorization_code', client_id:DBX_APP_KEY, code_verifier:verifier, redirect_uri:DBX_REDIRECT})
+  });
+  const data = await resp.json();
+  if(data.access_token){ accessToken = data.access_token; if(data.refresh_token) setRefresh(data.refresh_token); return true; }
+  return false;
+}
+
+async function dbxRefreshToken(){
+  const rt = getRefresh();
+  if(!rt) return false;
+  const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
+    method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({grant_type:'refresh_token', refresh_token:rt, client_id:DBX_APP_KEY})
+  });
+  const data = await resp.json();
+  if(data.access_token){ accessToken = data.access_token; return true; }
+  return false;
+}
+
+function isLoggedIn(){ return !!getRefresh(); }
+
+// ---------- LETTURA / SCRITTURA FILE ----------
+async function dbxRead(){
+  const resp = await fetch('https://content.dropboxapi.com/2/files/download', {
+    method:'POST', headers:{'Authorization':'Bearer '+accessToken, 'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE})}
+  });
+  if(resp.status===409) return null; // file non ancora esistente
+  if(!resp.ok) throw new Error('lettura HTTP '+resp.status);
+  return await resp.text();
+}
+async function dbxWrite(content){
+  const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
+    method:'POST',
+    headers:{'Authorization':'Bearer '+accessToken, 'Dropbox-API-Arg':JSON.stringify({path:DBX_FILE, mode:'overwrite', mute:true}), 'Content-Type':'application/octet-stream'},
+    body: content
+  });
+  if(!resp.ok) throw new Error('scrittura HTTP '+resp.status);
+  return await resp.json();
+}
+
+async function loadNotes() {
+  updateAuthUI();
+  if(!isLoggedIn()){ setStatus('collega Dropbox per iniziare'); notes=[]; render(); return; }
+  setStatus('carico da Dropbox…');
   try {
-    const resp = await fetch('https://api.dropboxapi.com/oauth2/token', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: new URLSearchParams({
-        code, grant_type: 'authorization_code',
-        client_id: APP_KEY, code_verifier: verifier,
-        redirect_uri: REDIRECT_URI
-      })
-    });
-    const data = await resp.json();
-    if (data.access_token) {
-      sessionStorage.setItem('dbx_token', data.access_token);
-      log('✓ Collegato a Dropbox!', 'ok');
-      document.getElementById('writeBtn').disabled = false;
-      document.getElementById('readBtn').disabled = false;
-      window.history.replaceState({}, '', REDIRECT_URI); // pulisce l'URL
+    if(!accessToken){ const ok = await dbxRefreshToken(); if(!ok){ setStatus('sessione scaduta, ricollega Dropbox'); localStorage.removeItem('dbx_refresh'); updateAuthUI(); return; } }
+    const raw = await dbxRead();
+    if(raw){
+      const parsed = JSON.parse(raw);
+      notes = Array.isArray(parsed) ? parsed : (parsed.notes || []);
+      permanentCategories = (parsed && Array.isArray(parsed.permanentCategories)) ? parsed.permanentCategories : [];
+      bannedCategories = (parsed && Array.isArray(parsed.bannedCategories)) ? parsed.bannedCategories : [];
     } else {
-      log('✗ Errore token: ' + JSON.stringify(data), 'err');
+      // file non esiste ancora: primo avvio, semino con le note di prova
+      notes = SEED_NOTES;
+      await persist();
     }
+    setStatus('sincronizzato');
   } catch (e) {
-    log('✗ Errore rete: ' + e.message, 'err');
+    notes = [];
+    setStatus('errore: ' + (e.message || 'caricamento fallito'));
+  }
+  render();
+}
+
+async function persist() {
+  if(!isLoggedIn()){ setStatus('non collegato: modifiche non salvate'); return; }
+  setStatus('salvo su Dropbox…');
+  try {
+    if(!accessToken){ await dbxRefreshToken(); }
+    const envelope = { schemaVersion: SCHEMA_VERSION, notes, permanentCategories, bannedCategories };
+    await dbxWrite(JSON.stringify(envelope, null, 2));
+    setStatus('salvato');
+  } catch (e) {
+    setStatus('errore salvataggio: ' + (e.message || ''));
   }
 }
 
-// --- Step 2: scrivi file ---
-document.getElementById('writeBtn').onclick = async () => {
-  const token = getToken();
-  if (!token) { log('Non collegato.', 'err'); return; }
-  log('Scrivo il file di prova…');
-  try {
-    const resp = await fetch('https://content.dropboxapi.com/2/files/upload', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Dropbox-API-Arg': JSON.stringify({ path: TEST_FILENAME, mode: 'overwrite', mute: true }),
-        'Content-Type': 'application/octet-stream'
-      },
-      body: 'Prova riuscita il ' + new Date().toLocaleString('it-IT')
-    });
-    const data = await resp.json();
-    if (data.name) log('✓ File scritto: ' + data.path_display, 'ok');
-    else log('✗ Errore scrittura: ' + JSON.stringify(data), 'err');
-  } catch (e) {
-    log('✗ Errore rete: ' + e.message, 'err');
-  }
-};
+function updateAuthUI(){
+  const btn = document.getElementById('authBtn');
+  if(!btn) return;
+  if(isLoggedIn()){ btn.textContent = '✓ Dropbox'; btn.classList.add('connected'); }
+  else { btn.textContent = 'Collega Dropbox'; btn.classList.remove('connected'); }
+}
 
-// --- Step 3: rileggi file ---
-document.getElementById('readBtn').onclick = async () => {
-  const token = getToken();
-  if (!token) { log('Non collegato.', 'err'); return; }
-  log('Rileggo il file…');
-  try {
-    const resp = await fetch('https://content.dropboxapi.com/2/files/download', {
-      method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + token,
-        'Dropbox-API-Arg': JSON.stringify({ path: TEST_FILENAME })
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+async function saveNote() {
+  const ta = document.getElementById('input');
+  const text = ta.value.trim();
+  if (!text) return;
+  ta.value = '';
+
+  notes.unshift({
+    id: uid(),
+    text,
+    created: new Date().toISOString(),
+    category: 'Da ordinare',
+    tags: [],
+    links: [],
+    customCategories: [],
+    source: 'text',
+    reminderDate: null,
+    analyzing: false
+  });
+  render();
+  await persist();
+}
+
+function render() {
+  renderList();
+  if (document.getElementById('mapPage').classList.contains('active')) renderMap();
+  if (document.getElementById('catPage').classList.contains('active')) renderCategories();
+}
+
+function renderCategories() {
+  const el = document.getElementById('catView');
+  // conteggio categorie realmente in uso nelle note
+  const inUse = {};
+  notes.forEach(n => {
+    const c = n.category || 'Da ordinare';
+    inUse[c] = (inUse[c] || 0) + 1;
+  });
+  const usedNames = Object.keys(inUse).sort((a, b) => inUse[b] - inUse[a]);
+
+  let html = `<div class="cat-section">
+    <div class="cat-h">Permanenti <span class="cat-count">(${permanentCategories.length}/20)</span></div>
+    <div class="cat-desc">La tua tassonomia ufficiale. Quando ordino le note, preferisco sempre queste.</div>
+    <div class="cat-chips">
+      ${permanentCategories.map(c => `<span class="cat-chip perm">${escapeHtml(c)} <span class="rm" data-rmperm="${escapeHtml(c)}">×</span></span>`).join('') || '<span class="cat-empty">nessuna ancora</span>'}
+    </div>
+  </div>`;
+
+  html += `<div class="cat-section">
+    <div class="cat-h">Vietate</div>
+    <div class="cat-desc">Non le userò mai. Marcandone una, le note che ce l'hanno tornano subito a "Da ordinare".</div>
+    <div class="cat-chips">
+      ${bannedCategories.map(c => `<span class="cat-chip ban">${escapeHtml(c)} <span class="rm" data-rmban="${escapeHtml(c)}">×</span></span>`).join('') || '<span class="cat-empty">nessuna ancora</span>'}
+    </div>
+  </div>`;
+
+  html += `<div class="cat-section">
+    <div class="cat-h">In uso ora <span class="cat-count">(${usedNames.length})</span></div>
+    <div class="cat-desc">Categorie presenti nelle note in questo momento. Per ciascuna: rendila permanente o vietala.</div>`;
+  usedNames.forEach(name => {
+    const isPerm = permanentCategories.includes(name);
+    const isBan = bannedCategories.includes(name);
+    const color = (name === 'Da ordinare') ? '#9a8f6a' : colorFor(name);
+    html += `<div class="cat-row">
+      <span class="cat-dot" style="background:${color}"></span>
+      <span class="cat-name">${escapeHtml(name)}</span>
+      <span class="cat-num">${inUse[name]}</span>
+      <span class="cat-acts">
+        <button data-perm="${escapeHtml(name)}" ${isPerm || permanentCategories.length >= 20 ? 'disabled' : ''}>★ permanente</button>
+        <button data-ban="${escapeHtml(name)}" ${isBan ? 'disabled' : ''}>⊘ vieta</button>
+      </span>
+    </div>`;
+  });
+  html += `</div>`;
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-perm]').forEach(b => b.onclick = () => addPermanent(b.getAttribute('data-perm')));
+  el.querySelectorAll('[data-ban]').forEach(b => b.onclick = () => addBanned(b.getAttribute('data-ban')));
+  el.querySelectorAll('[data-rmperm]').forEach(b => b.onclick = () => { permanentCategories = permanentCategories.filter(c => c !== b.getAttribute('data-rmperm')); renderCategories(); persist(); });
+  el.querySelectorAll('[data-rmban]').forEach(b => b.onclick = () => { bannedCategories = bannedCategories.filter(c => c !== b.getAttribute('data-rmban')); renderCategories(); persist(); });
+}
+
+async function addPermanent(name) {
+  if (permanentCategories.length >= 20 || permanentCategories.includes(name)) return;
+  permanentCategories.push(name);
+  bannedCategories = bannedCategories.filter(c => c !== name); // non può essere sia permanente che vietata
+  renderCategories();
+  await persist();
+}
+
+async function addBanned(name) {
+  if (bannedCategories.includes(name)) return;
+  bannedCategories.push(name);
+  permanentCategories = permanentCategories.filter(c => c !== name);
+  // le note con questa categoria tornano a "Da ordinare"
+  let touched = 0;
+  notes.forEach(n => { if (n.category === name) { n.category = 'Da ordinare'; touched++; } });
+  renderCategories();
+  render();
+  await persist();
+  if (touched) setStatus(`${touched} note rimandate a "Da ordinare"`);
+}
+
+function renderList() {
+  const el = document.getElementById('listView');
+  if (notes.length === 0) {
+    el.innerHTML = '<div class="empty">Nessuna nota ancora. Scrivi qualcosa sopra.</div>';
+    return;
+  }
+  const groups = {};
+  notes.forEach(n => {
+    const cat = n.analyzing ? '…analisi in corso' : (n.category || 'Non categorizzato');
+    if (!groups[cat]) groups[cat] = [];
+    groups[cat].push(n);
+  });
+  let html = '';
+  Object.keys(groups).sort().forEach(cat => {
+    const list = groups[cat];
+    const color = cat.startsWith('…') ? '#5a6472' : colorFor(cat);
+    html += `<div class="group"><div class="group-title" style="--cat-color:${color}"><span class="dot"></span>${escapeHtml(cat)} <span class="count">(${list.length})</span></div>`;
+    list.forEach(n => {
+      html += renderNote(n, color);
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+  el.querySelectorAll('[data-copy]').forEach(b => {
+    b.onclick = () => {
+      const n = notes.find(x => x.id === b.getAttribute('data-copy'));
+      navigator.clipboard.writeText(n.text).then(() => { b.textContent = 'copiato'; setTimeout(() => b.textContent = 'copia', 900); });
+    };
+  });
+  el.querySelectorAll('[data-remind]').forEach(b => {
+    b.onclick = () => setReminder(b.getAttribute('data-remind'));
+  });
+  el.querySelectorAll('[data-rmreminder]').forEach(b => {
+    b.onclick = () => clearReminder(b.getAttribute('data-rmreminder'));
+  });
+  el.querySelectorAll('[data-addcustom]').forEach(b => {
+    b.onclick = () => addCustomCategory(b.getAttribute('data-addcustom'));
+  });
+  el.querySelectorAll('[data-rmcustom]').forEach(b => {
+    b.onclick = () => removeCustomCategory(b.getAttribute('data-rmcustom'), b.getAttribute('data-catname'));
+  });
+  el.querySelectorAll('[data-edit]').forEach(b => {
+    b.onclick = () => startEdit(b.getAttribute('data-edit'));
+  });
+  el.querySelectorAll('[data-del]').forEach(b => {
+    b.onclick = async () => {
+      const id = b.getAttribute('data-del');
+      if (pendingDelete.has(id)) {
+        pendingDelete.delete(id);
+        notes = notes.filter(n => n.id !== id);
+        render();
+        await persist();
+      } else {
+        pendingDelete.add(id);
+        renderList();
+        setTimeout(() => {
+          if (pendingDelete.has(id)) { pendingDelete.delete(id); renderList(); }
+        }, 4000);
+      }
+    };
+  });
+  el.querySelectorAll('[data-jump]').forEach(a => {
+    a.onclick = () => {
+      const target = document.getElementById('note-' + a.getAttribute('data-jump'));
+      if (target) { target.scrollIntoView({behavior:'smooth', block:'center'}); target.style.borderColor = 'var(--amber)'; setTimeout(()=> target.style.borderColor='var(--line)', 1200); }
+    };
+  });
+}
+
+function renderNote(n, color) {
+  const linkedTitles = (n.links || []).map(id => {
+    const t = notes.find(x => x.id === id);
+    return t ? `<a data-jump="${id}">${escapeHtml(t.text.slice(0,30))}…</a>` : '';
+  }).filter(Boolean).join(' · ');
+  const custom = n.customCategories || [];
+  const customRow = `<div class="custom-cats">
+    ${custom.map(c => `<span class="tag custom-tag">${escapeHtml(c)} <span data-rmcustom="${n.id}" data-catname="${escapeHtml(c)}" class="rm">×</span></span>`).join('')}
+    ${custom.length < 3 ? `<button data-addcustom="${n.id}" class="addcat">+ categoria (${custom.length}/3)</button>` : ''}
+  </div>`;
+  const reminderBadge = n.reminderDate
+    ? `<span class="tag reminder-tag" data-rmreminder="${n.id}">⏰ ${new Date(n.reminderDate).toLocaleDateString('it-IT',{day:'2-digit',month:'2-digit',year:'2-digit'})} ×</span>`
+    : '';
+  return `<div class="note" id="note-${n.id}" style="--cat-color:${color}">
+    <div class="note-text">${escapeHtml(n.text)}</div>
+    ${customRow}
+    <div class="note-meta">
+      <span class="mono">${new Date(n.created).toLocaleString('it-IT', {day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}</span>
+      ${n.analyzing ? '<span class="pending">analisi in corso…</span>' : (n.tags||[]).map(t => `<span class="tag">${escapeHtml(t)}</span>`).join('')}
+      ${reminderBadge}
+      <span class="note-actions">
+        <button data-copy="${n.id}">copia</button>
+        <button data-remind="${n.id}">⏰</button>
+        <button data-edit="${n.id}">modifica</button>
+        <button data-del="${n.id}" class="${pendingDelete.has(n.id) ? 'confirm-del' : ''}">${pendingDelete.has(n.id) ? 'sicuro? tocca ancora' : 'elimina'}</button>
+      </span>
+    </div>
+    ${linkedTitles ? `<div class="note-links">collegata a: ${linkedTitles}</div>` : ''}
+  </div>`;
+}
+
+function startEdit(id) {
+  const n = notes.find(x => x.id === id);
+  const container = document.getElementById('note-' + id);
+  if (!n || !container) return;
+  const textEl = container.querySelector('.note-text');
+  textEl.outerHTML = `<textarea class="editArea" id="edit-${id}" style="width:100%;min-height:60px;background:var(--panel-2);border:1px solid var(--amber);color:var(--paper);padding:8px;border-radius:3px;font-family:inherit;font-size:13.5px;">${escapeHtml(n.text)}</textarea>
+    <div style="margin-top:6px;display:flex;gap:6px;">
+      <button data-save-edit="${id}">salva modifica</button>
+      <button data-cancel-edit="${id}">annulla</button>
+    </div>`;
+  container.querySelector(`[data-save-edit="${id}"]`).onclick = async () => {
+    const newText = document.getElementById('edit-' + id).value.trim();
+    if (newText && newText !== n.text) {
+      n.text = newText;
+      render();
+      await persist();
+    } else {
+      render();
+    }
+  };
+  container.querySelector(`[data-cancel-edit="${id}"]`).onclick = () => render();
+}
+
+async function setReminder(id) {
+  const n = notes.find(x => x.id === id);
+  if (!n) return;
+  const input = prompt('Richiama questa nota il (gg/mm/aaaa):', '');
+  if (!input) return;
+  const m = input.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (!m) { alert('Formato non riconosciuto, usa gg/mm/aaaa'); return; }
+  const [, d, mo, y] = m;
+  const year = y.length === 2 ? '20' + y : y;
+  const date = new Date(`${year}-${mo.padStart(2,'0')}-${d.padStart(2,'0')}T09:00:00`);
+  if (isNaN(date.getTime())) { alert('Data non valida'); return; }
+  n.reminderDate = date.toISOString();
+  render();
+  await persist();
+}
+
+async function clearReminder(id) {
+  const n = notes.find(x => x.id === id);
+  if (!n) return;
+  n.reminderDate = null;
+  render();
+  await persist();
+}
+
+async function addCustomCategory(id) {
+  const n = notes.find(x => x.id === id);
+  if (!n) return;
+  n.customCategories = n.customCategories || [];
+  if (n.customCategories.length >= 3) return;
+  const name = (prompt('Nome della categoria personalizzata (max 3 per nota):') || '').trim();
+  if (!name) return;
+  if (n.customCategories.includes(name)) return;
+  n.customCategories.push(name);
+  render();
+  await persist();
+}
+
+async function removeCustomCategory(id, name) {
+  const n = notes.find(x => x.id === id);
+  if (!n) return;
+  n.customCategories = (n.customCategories || []).filter(c => c !== name);
+  render();
+  await persist();
+}
+
+function renderMap() {
+  const host = document.getElementById('mapCanvasHost');
+  const done = notes.filter(n => !n.analyzing);
+  if (done.length === 0) {
+    host.innerHTML = '<div class="empty">La mappa appare dopo la prima categorizzazione.</div>';
+    return;
+  }
+  const w = host.clientWidth || 380, h = host.clientHeight || 500;
+  const cats = [...new Set(done.map(n => n.category))];
+  const cols = Math.ceil(Math.sqrt(cats.length));
+  const cellW = w / cols, cellH = Math.max(160, h / Math.ceil(cats.length / cols));
+  const clusterCenters = {};
+  cats.forEach((c, i) => {
+    clusterCenters[c] = {
+      x: cellW * (i % cols) + cellW / 2,
+      y: cellH * Math.floor(i / cols) + cellH / 2 + 30
+    };
+  });
+
+  const byCat = {};
+  done.forEach(n => (byCat[n.category] = byCat[n.category] || []).push(n));
+  const positions = {};
+
+  Object.entries(byCat).forEach(([cat, list]) => {
+    const center = clusterCenters[cat];
+    list.forEach((n, i) => {
+      const r = list.length > 1 ? Math.min(cellW, cellH) * 0.28 : 0;
+      const angle = (i / list.length) * Math.PI * 2;
+      positions[n.id] = { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r };
+    });
+  });
+
+  let svg = `<svg viewBox="0 0 ${w} ${Math.ceil(cats.length / cols) * cellH + 40}" width="100%" style="display:block;">`;
+  done.forEach(n => {
+    (n.links || []).forEach(lid => {
+      if (positions[lid] && positions[n.id]) {
+        const a = positions[n.id], b = positions[lid];
+        svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#c7cad0" stroke-width="1.5"/>`;
       }
     });
-    if (resp.ok) {
-      const text = await resp.text();
-      log('✓ Contenuto letto: "' + text + '"', 'ok');
-    } else {
-      const data = await resp.json();
-      log('✗ Errore lettura: ' + JSON.stringify(data), 'err');
+  });
+  Object.entries(clusterCenters).forEach(([cat, c]) => {
+    svg += `<circle cx="${c.x}" cy="${c.y}" r="${Math.min(cellW, cellH) * 0.32 + 14}" fill="${colorFor(cat)}22" stroke="${colorFor(cat)}" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+    svg += `<text x="${c.x}" y="${c.y - Math.min(cellW, cellH) * 0.32 - 20}" fill="${colorFor(cat)}" font-weight="700" font-size="11" text-anchor="middle">${escapeHtml(cat)}</text>`;
+  });
+  done.forEach(n => {
+    const p = positions[n.id];
+    svg += `<circle data-node="${n.id}" cx="${p.x}" cy="${p.y}" r="8" fill="${colorFor(n.category)}" stroke="#fff" stroke-width="2" style="cursor:pointer;"><title>${escapeHtml(n.text.slice(0,80))}</title></circle>`;
+  });
+  svg += `</svg>`;
+  host.innerHTML = svg;
+
+  host.querySelectorAll('[data-node]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = el.getAttribute('data-node');
+      document.querySelector('.navbtn[data-page="listPage"]').click();
+      setTimeout(() => {
+        const target = document.getElementById('note-' + id);
+        if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.style.outline = '2px solid var(--accent)'; setTimeout(() => target.style.outline = 'none', 1200); }
+      }, 60);
+    });
+  });
+}
+
+function escapeHtml(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return escapeHtml(s); }
+
+document.getElementById('saveBtn').onclick = saveNote;
+document.getElementById('input').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote();
+});
+
+document.querySelectorAll('.navbtn').forEach(btn => {
+  btn.onclick = () => {
+    document.querySelectorAll('.navbtn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+    const target = btn.getAttribute('data-page');
+    document.getElementById(target).classList.add('active');
+    document.getElementById('saveBtn').style.display = (target === 'writePage') ? 'flex' : 'none';
+    if (target === 'mapPage') renderMap();
+    if (target === 'catPage') renderCategories();
+  };
+});
+
+
+document.getElementById('micHint').textContent = 'usa il microfono della tastiera per dettare qui dentro';
+
+(function setHero() {
+  const today = new Date();
+  const dayNum = Math.floor(today.getTime() / 86400000); // cambia ogni giorno a mezzanotte
+  const img = document.getElementById('heroImg');
+  const wrap = document.getElementById('heroFull');
+  img.onerror = () => { img.style.display = 'none'; wrap.classList.add('fallback'); };
+  img.src = `https://loremflickr.com/900/500/night,city,traffic,lights?lock=${dayNum}`;
+  const h = today.getHours();
+  const greet = h < 6 ? 'Ancora sveglio' : h < 12 ? 'Buongiorno' : h < 18 ? 'Buon pomeriggio' : 'Buonasera';
+  document.getElementById('heroGreet').textContent = greet;
+  document.getElementById('heroDate').textContent = today.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' });
+})();
+
+// pulsante collega/stato Dropbox
+document.getElementById('authBtn').onclick = () => {
+  if (isLoggedIn()) {
+    if (confirm('Vuoi scollegare Dropbox da questo dispositivo?')) {
+      localStorage.removeItem('dbx_refresh'); accessToken = null; updateAuthUI(); loadNotes();
     }
-  } catch (e) {
-    log('✗ Errore rete: ' + e.message, 'err');
+  } else {
+    dbxLogin();
   }
 };
 
-// se torniamo dal redirect con un ?code=..., gestiscilo
-if (getToken()) {
-  log('Già collegato in questa sessione.', 'ok');
-  document.getElementById('writeBtn').disabled = false;
-  document.getElementById('readBtn').disabled = false;
-} else {
-  handleRedirect();
-}
+// avvio: se torniamo dal redirect OAuth con ?code=..., completiamo il login
+(async function boot(){
+  const params = new URLSearchParams(window.location.search);
+  const code = params.get('code');
+  if (code) {
+    setStatus('completo il collegamento…');
+    const ok = await dbxExchangeCode(code);
+    window.history.replaceState({}, '', DBX_REDIRECT); // pulisce l'URL dal code
+    if (!ok) { setStatus('collegamento fallito, riprova'); updateAuthUI(); return; }
+  }
+  loadNotes();
+})();
 </script>
 </body>
 </html>
