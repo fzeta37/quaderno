@@ -21,12 +21,15 @@
   * { box-sizing: border-box; }
   html, body {
     margin: 0; padding: 0; height: 100%;
+    position: fixed; width: 100%; overflow: hidden;
+    overscroll-behavior: none;
     background: var(--bg); color: var(--ink);
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
   }
+  .page-body, textarea.bigwrite { overscroll-behavior: contain; -webkit-overflow-scrolling: touch; }
   .mono { font-family: "SF Mono", "Consolas", "Menlo", monospace; }
 
-  .app { display: flex; flex-direction: column; height: 100vh; }
+  .app { display: flex; flex-direction: column; height: 100vh; height: 100dvh; overflow: hidden; }
 
   .pages { flex: 1; position: relative; overflow: hidden; }
   .page { position: absolute; inset: 0; display: none; flex-direction: column; }
