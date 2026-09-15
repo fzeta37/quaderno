@@ -32,9 +32,9 @@
   .page { position: absolute; inset: 0; display: none; flex-direction: column; }
   .page.active { display: flex; }
 
-  #writePage { padding: 0; position: relative; }
+  #writePage { padding: 0; position: relative; overflow: hidden; }
   .hero-full {
-    position: relative; width: 100%; height: 34vh; flex-shrink: 0; overflow: hidden;
+    position: relative; width: 100%; height: 30vh; flex-shrink: 0; overflow: hidden;
     background: linear-gradient(135deg, #0b1020, #1c2440);
   }
   .hero-full img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -55,14 +55,28 @@
   .hero-text { position: absolute; left: 20px; bottom: 18px; right: 20px; z-index: 1; color: #fff; }
   .hero-text .greet { font-size: 21px; font-weight: 700; margin: 0 0 2px; }
   .hero-text .date { font-size: 12px; opacity: 0.85; text-transform: capitalize; }
+  .bell {
+    position: absolute; top: 16px; right: 16px; z-index: 2;
+    width: 42px; height: 42px; border-radius: 50%; border: none; padding: 0;
+    background: rgba(255,255,255,0.16); backdrop-filter: blur(6px);
+    color: #fff; display: flex; align-items: center; justify-content: center;
+  }
+  .bell.urgent { background: var(--rust); animation: bellpulse 1.6s ease-in-out infinite; }
+  @keyframes bellpulse { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+  .bell-badge {
+    position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px;
+    background: #fff; color: var(--rust); border-radius: 999px; font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; justify-content: center; padding: 0 4px;
+  }
 
   textarea.bigwrite {
     flex: 1; width: 100%; resize: none; border: none; outline: none;
     background: transparent; color: var(--ink);
     font-family: inherit; font-size: 17px; line-height: 1.6;
-    padding: 20px 20px 110px;
+    padding: 20px 20px 100px; overflow-y: auto;
   }
   textarea.bigwrite::placeholder { color: var(--ink-dim); }
+  #writePage .hint { position: absolute; left: 20px; bottom: 90px; pointer-events: none; }
 
   .page-header {
     padding: 20px 18px 12px; display: flex; align-items: baseline; justify-content: space-between; flex-shrink: 0;
@@ -81,23 +95,24 @@
   button:disabled { opacity: 0.4; cursor: default; }
   .hint { font-size: 11px; color: var(--ink-dim); }
 
-  .bottombar { position: absolute; left: 18px; bottom: 18px; display: flex; align-items: center; gap: 12px; z-index: 5; }
+  .bottombar { position: absolute; left: 18px; right: 18px; bottom: 18px; display: flex; align-items: center; gap: 12px; z-index: 5; }
   .fab-save {
-    width: 56px; height: 56px; border-radius: 50%; border: none;
-    background: var(--ink); color: #fff; font-size: 22px;
+    width: 56px; height: 56px; border-radius: 50%; border: none; flex-shrink: 0;
+    background: var(--ink); color: #fff;
     display: flex; align-items: center; justify-content: center; padding: 0;
     box-shadow: 0 10px 24px rgba(0,0,0,0.28);
   }
   .fab-save:hover { filter: brightness(1.3); border-color: transparent; }
   .navpill {
     display: flex; gap: 2px; background: var(--ink); border-radius: 999px;
-    padding: 6px; box-shadow: 0 10px 24px rgba(0,0,0,0.28);
+    padding: 6px; box-shadow: 0 10px 24px rgba(0,0,0,0.28); margin-left: auto;
   }
   .navpill .navbtn {
-    width: 44px; height: 44px; border-radius: 50%; border: none; padding: 0;
+    width: 42px; height: 42px; border-radius: 50%; border: none; padding: 0;
     display: flex; align-items: center; justify-content: center;
-    font-size: 17px; color: rgba(255,255,255,0.55); background: transparent;
+    color: rgba(255,255,255,0.55); background: transparent;
   }
+  .navpill .navbtn svg { width: 19px; height: 19px; }
   .navpill .navbtn.active { background: #fff; color: var(--ink); }
   .navpill .navbtn:hover { border-color: transparent; }
 
@@ -134,7 +149,25 @@
   .empty { color: var(--ink-dim); font-size: 13px; padding: 30px 0; text-align: center; }
 
   #mapPage .page-body { padding: 0 18px 100px; }
-  #mapCanvasHost { border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; }
+  #mapPage .page-body { padding: 12px 18px 100px; }
+  #mapCanvasHost { width: 100%; height: 100%; border-radius: 22px; background: var(--panel); box-shadow: var(--shadow); overflow: hidden; touch-action: none; cursor: grab; }
+  #mapCanvasHost:active { cursor: grabbing; }
+  .map-hint { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--ink-dim); background: rgba(255,255,255,0.9); padding: 4px 10px; border-radius: 999px; white-space: nowrap; }
+
+  .todo-cat { margin-bottom: 20px; }
+  .todo-cat-h { font-size: 12px; font-weight: 700; letter-spacing: 0.02em; color: var(--cat-color, var(--teal)); margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .todo-cat-h .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--cat-color, var(--teal)); }
+  .todo-item { background: var(--panel); box-shadow: var(--shadow); border-radius: 14px; padding: 12px 14px; margin-bottom: 8px; display: flex; align-items: flex-start; gap: 10px; }
+  .todo-item.done { opacity: 0.5; }
+  .todo-check { width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line); flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center; background: transparent; padding: 0; margin-top: 1px; }
+  .todo-check.on { background: var(--teal); border-color: var(--teal); color: #fff; }
+  .todo-body { flex: 1; }
+  .todo-text { font-size: 14px; line-height: 1.4; }
+  .todo-item.done .todo-text { text-decoration: line-through; }
+  .todo-meta { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 5px; font-size: 10.5px; color: var(--ink-dim); }
+  .todo-when { padding: 2px 8px; border-radius: 999px; background: var(--panel-2); }
+  .todo-when.urgent { background: rgba(201,106,78,0.14); color: #a8442a; font-weight: 600; }
+  .todo-who { padding: 2px 8px; border-radius: 999px; background: rgba(60,143,134,0.12); color: #276b64; }
 
   .cat-section { margin-bottom: 24px; }
   .cat-h { font-size: 15px; font-weight: 700; margin-bottom: 3px; }
@@ -173,13 +206,17 @@
     <section class="page active" id="writePage">
       <div class="hero-full" id="heroFull">
         <img id="heroImg" src="" alt="">
+        <button id="bellBtn" class="bell" title="Urgenze">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+          <span class="bell-badge" id="bellBadge" style="display:none;">0</span>
+        </button>
         <div class="hero-text">
           <p class="greet" id="heroGreet">Ciao</p>
           <p class="date" id="heroDate"></p>
         </div>
       </div>
       <textarea id="input" class="bigwrite" placeholder="Scrivi a ruota libera — una gara, un'idea, un problema tecnico incontrato oggi..."></textarea>
-      <span class="hint mono" id="micHint" style="position:absolute; left:18px; bottom:88px;">usa il microfono della tastiera per dettare qui dentro</span>
+      <span class="hint mono" id="micHint">usa il microfono della tastiera per dettare qui dentro</span>
     </section>
 
     <section class="page" id="listPage">
@@ -193,12 +230,17 @@
       <div class="page-body" id="listView"></div>
     </section>
 
+    <section class="page" id="todoPage">
+      <div class="page-header"><h1>Da fare</h1></div>
+      <div class="page-body" id="todoView"></div>
+    </section>
+
     <section class="page" id="mapPage">
-      <div class="page-header"><h1>Mappa</h1></div>
+      <div class="page-header"><h1>Collegamenti</h1></div>
       <div class="page-body">
         <div style="position:relative; height:100%;">
-          <div id="mapCanvasHost" style="width:100%; height:100%; cursor: grab;"></div>
-          <div class="mono" style="position:absolute; top:14px; right:20px; font-size:10.5px; color:var(--ink-dim); background:rgba(255,255,255,0.85); padding:3px 8px; border-radius:8px;">clic su un nodo per aprire la nota</div>
+          <div id="mapCanvasHost"></div>
+          <div class="map-hint mono">pizzica o rotella per zoom · trascina per spostarti</div>
         </div>
       </div>
     </section>
@@ -210,12 +252,25 @@
   </div>
 
   <div class="bottombar">
-    <button id="saveBtn" class="fab-save" title="Salva">💾</button>
+    <button id="saveBtn" class="fab-save" title="Salva">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+    </button>
     <nav class="navpill">
-      <button class="navbtn active" data-page="writePage" title="Scrivi">✎</button>
-      <button class="navbtn" data-page="listPage" title="Note">🏷</button>
-      <button class="navbtn" data-page="mapPage" title="Mappa">📍</button>
-      <button class="navbtn" data-page="catPage" title="Categorie">☰</button>
+      <button class="navbtn active" data-page="writePage" title="Scrivi">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+      </button>
+      <button class="navbtn" data-page="listPage" title="Note">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+      </button>
+      <button class="navbtn" data-page="todoPage" title="Da fare">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+      </button>
+      <button class="navbtn" data-page="mapPage" title="Collegamenti">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M6.7 7.7l4 8m6.6-8l-4 8"/></svg>
+      </button>
+      <button class="navbtn" data-page="catPage" title="Categorie">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><circle cx="7" cy="7" r="1.2" fill="currentColor"/></svg>
+      </button>
     </nav>
   </div>
 </div>
@@ -225,6 +280,7 @@ const DRIVE_FILE_NAME = 'quaderno-progetti-dati.json';
 let notes = [];
 let permanentCategories = [];
 let bannedCategories = [];
+let todos = [];
 const pendingDelete = new Set();
 let recognizing = false;
 
@@ -322,6 +378,7 @@ async function loadNotes() {
       notes = Array.isArray(parsed) ? parsed : (parsed.notes || []);
       permanentCategories = (parsed && Array.isArray(parsed.permanentCategories)) ? parsed.permanentCategories : [];
       bannedCategories = (parsed && Array.isArray(parsed.bannedCategories)) ? parsed.bannedCategories : [];
+      todos = (parsed && Array.isArray(parsed.todos)) ? parsed.todos : [];
     } else {
       // file non esiste ancora: primo avvio, semino con le note di prova
       notes = SEED_NOTES;
@@ -340,7 +397,7 @@ async function persist() {
   setStatus('salvo su Dropbox…');
   try {
     if(!accessToken){ await dbxRefreshToken(); }
-    const envelope = { schemaVersion: SCHEMA_VERSION, notes, permanentCategories, bannedCategories };
+    const envelope = { schemaVersion: SCHEMA_VERSION, notes, permanentCategories, bannedCategories, todos };
     await dbxWrite(JSON.stringify(envelope, null, 2));
     setStatus('salvato');
   } catch (e) {
@@ -381,8 +438,90 @@ async function saveNote() {
 
 function render() {
   renderList();
+  updateBell();
   if (document.getElementById('mapPage').classList.contains('active')) renderMap();
   if (document.getElementById('catPage').classList.contains('active')) renderCategories();
+  if (document.getElementById('todoPage').classList.contains('active')) renderTodos();
+}
+
+function todoUrgency(t) {
+  // 'scaduto' | 'oggi' | 'futuro' | null  — basato su t.due (ISO) se presente
+  if (t.done || !t.due) return null;
+  const now = new Date();
+  const due = new Date(t.due);
+  if (isNaN(due.getTime())) return null;
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDue = new Date(due.getFullYear(), due.getMonth(), due.getDate());
+  const diffDays = Math.round((startDue - startToday) / 86400000);
+  if (diffDays < 0) return 'scaduto';
+  if (diffDays === 0) return 'oggi';
+  if (diffDays === 1) return 'domani';
+  return 'futuro';
+}
+
+function countUrgent() {
+  return todos.filter(t => { const u = todoUrgency(t); return u === 'scaduto' || u === 'oggi' || u === 'domani'; }).length;
+}
+
+function updateBell() {
+  const n = countUrgent();
+  const bell = document.getElementById('bellBtn');
+  const badge = document.getElementById('bellBadge');
+  if (!bell) return;
+  if (n > 0) {
+    bell.classList.add('urgent');
+    badge.style.display = 'flex';
+    badge.textContent = n;
+  } else {
+    bell.classList.remove('urgent');
+    badge.style.display = 'none';
+  }
+}
+
+function renderTodos() {
+  const el = document.getElementById('todoView');
+  if (!todos.length) {
+    el.innerHTML = '<div class="empty">Nessun impegno ancora. Compaiono qui quando le note vengono ordinate (giorni, persone e orari estratti dal testo).</div>';
+    return;
+  }
+  // raggruppa per categoria, ordina i gruppi per urgenza max interna
+  const byCat = {};
+  todos.forEach(t => { const c = t.category || 'Da ordinare'; (byCat[c] = byCat[c] || []).push(t); });
+  const urgencyRank = { 'scaduto': 0, 'oggi': 1, 'domani': 2, 'futuro': 3, null: 4 };
+  const cats = Object.keys(byCat).sort((a, b) => {
+    const ma = Math.min(...byCat[a].map(t => urgencyRank[todoUrgency(t)]));
+    const mb = Math.min(...byCat[b].map(t => urgencyRank[todoUrgency(t)]));
+    return ma - mb;
+  });
+
+  let html = '';
+  cats.forEach(cat => {
+    const color = (cat === 'Da ordinare') ? '#9a8f6a' : colorFor(cat);
+    const items = byCat[cat].sort((a, b) => urgencyRank[todoUrgency(a)] - urgencyRank[todoUrgency(b)]);
+    html += `<div class="todo-cat"><div class="todo-cat-h" style="--cat-color:${color}"><span class="dot"></span>${escapeHtml(cat)}</div>`;
+    items.forEach(t => {
+      const u = todoUrgency(t);
+      const whenLabel = t.due ? (u === 'scaduto' ? 'scaduto' : u === 'oggi' ? 'oggi' : u === 'domani' ? 'domani' : new Date(t.due).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit' })) : '';
+      const timeLabel = t.time ? ' ' + t.time : '';
+      html += `<div class="todo-item ${t.done ? 'done' : ''}">
+        <button class="todo-check ${t.done ? 'on' : ''}" data-toggle="${t.id}">${t.done ? '✓' : ''}</button>
+        <div class="todo-body">
+          <div class="todo-text">${escapeHtml(t.text)}</div>
+          <div class="todo-meta">
+            ${whenLabel ? `<span class="todo-when ${(u==='scaduto'||u==='oggi'||u==='domani')?'urgent':''}">${whenLabel}${timeLabel}</span>` : ''}
+            ${t.who ? `<span class="todo-who">${escapeHtml(t.who)}</span>` : ''}
+          </div>
+        </div>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+  el.innerHTML = html;
+
+  el.querySelectorAll('[data-toggle]').forEach(b => b.onclick = async () => {
+    const t = todos.find(x => x.id === b.getAttribute('data-toggle'));
+    if (t) { t.done = !t.done; renderTodos(); updateBell(); await persist(); }
+  });
 }
 
 function renderCategories() {
@@ -627,62 +766,74 @@ async function removeCustomCategory(id, name) {
   await persist();
 }
 
+let mapView = null; // {vbX, vbY, vbW, vbH, worldW, worldH}
+
 function renderMap() {
   const host = document.getElementById('mapCanvasHost');
   const done = notes.filter(n => !n.analyzing);
   if (done.length === 0) {
-    host.innerHTML = '<div class="empty">La mappa appare dopo la prima categorizzazione.</div>';
+    host.innerHTML = '<div class="empty">La mappa appare quando le note vengono ordinate e collegate.</div>';
+    mapView = null;
     return;
   }
-  const w = host.clientWidth || 380, h = host.clientHeight || 500;
   const cats = [...new Set(done.map(n => n.category))];
+  // spazio mondo generoso, così con molte categorie c'è respiro e si naviga con lo zoom
   const cols = Math.ceil(Math.sqrt(cats.length));
-  const cellW = w / cols, cellH = Math.max(160, h / Math.ceil(cats.length / cols));
+  const rows = Math.ceil(cats.length / cols);
+  const cell = 260;
+  const worldW = Math.max(cols * cell, 400);
+  const worldH = Math.max(rows * cell, 400);
+
   const clusterCenters = {};
   cats.forEach((c, i) => {
-    clusterCenters[c] = {
-      x: cellW * (i % cols) + cellW / 2,
-      y: cellH * Math.floor(i / cols) + cellH / 2 + 30
-    };
+    clusterCenters[c] = { x: cell * (i % cols) + cell / 2, y: cell * Math.floor(i / cols) + cell / 2 };
   });
 
   const byCat = {};
   done.forEach(n => (byCat[n.category] = byCat[n.category] || []).push(n));
   const positions = {};
-
   Object.entries(byCat).forEach(([cat, list]) => {
     const center = clusterCenters[cat];
     list.forEach((n, i) => {
-      const r = list.length > 1 ? Math.min(cellW, cellH) * 0.28 : 0;
+      const r = list.length > 1 ? 62 : 0;
       const angle = (i / list.length) * Math.PI * 2;
       positions[n.id] = { x: center.x + Math.cos(angle) * r, y: center.y + Math.sin(angle) * r };
     });
   });
 
-  let svg = `<svg viewBox="0 0 ${w} ${Math.ceil(cats.length / cols) * cellH + 40}" width="100%" style="display:block;">`;
+  let inner = '';
   done.forEach(n => {
     (n.links || []).forEach(lid => {
       if (positions[lid] && positions[n.id]) {
         const a = positions[n.id], b = positions[lid];
-        svg += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#c7cad0" stroke-width="1.5"/>`;
+        inner += `<line x1="${a.x}" y1="${a.y}" x2="${b.x}" y2="${b.y}" stroke="#c7cad0" stroke-width="1.5"/>`;
       }
     });
   });
   Object.entries(clusterCenters).forEach(([cat, c]) => {
-    svg += `<circle cx="${c.x}" cy="${c.y}" r="${Math.min(cellW, cellH) * 0.32 + 14}" fill="${colorFor(cat)}22" stroke="${colorFor(cat)}" stroke-width="1.5" stroke-dasharray="3 4"/>`;
-    svg += `<text x="${c.x}" y="${c.y - Math.min(cellW, cellH) * 0.32 - 20}" fill="${colorFor(cat)}" font-weight="700" font-size="11" text-anchor="middle">${escapeHtml(cat)}</text>`;
+    inner += `<circle cx="${c.x}" cy="${c.y}" r="96" fill="${colorFor(cat)}22" stroke="${colorFor(cat)}" stroke-width="1.5" stroke-dasharray="3 4"/>`;
+    inner += `<text x="${c.x}" y="${c.y - 104}" fill="${colorFor(cat)}" font-weight="700" font-size="13" text-anchor="middle">${escapeHtml(cat)}</text>`;
   });
   done.forEach(n => {
     const p = positions[n.id];
-    svg += `<circle data-node="${n.id}" cx="${p.x}" cy="${p.y}" r="8" fill="${colorFor(n.category)}" stroke="#fff" stroke-width="2" style="cursor:pointer;"><title>${escapeHtml(n.text.slice(0,80))}</title></circle>`;
+    inner += `<circle data-node="${n.id}" cx="${p.x}" cy="${p.y}" r="9" fill="${colorFor(n.category)}" stroke="#fff" stroke-width="2.5" style="cursor:pointer;"><title>${escapeHtml(n.text.slice(0,80))}</title></circle>`;
   });
-  svg += `</svg>`;
-  host.innerHTML = svg;
 
-  host.querySelectorAll('[data-node]').forEach(el => {
-    el.addEventListener('click', () => {
+  // stato vista iniziale: inquadra tutto il mondo
+  if (!mapView || mapView.worldW !== worldW || mapView.worldH !== worldH) {
+    mapView = { vbX: -20, vbY: -20, vbW: worldW + 40, vbH: worldH + 40, worldW, worldH };
+  }
+  const vb = `${mapView.vbX} ${mapView.vbY} ${mapView.vbW} ${mapView.vbH}`;
+  host.innerHTML = `<svg id="mapSvg" width="100%" height="100%" viewBox="${vb}" preserveAspectRatio="xMidYMid meet" style="display:block; touch-action:none;">${inner}</svg>`;
+
+  const svg = document.getElementById('mapSvg');
+  attachMapInteractions(svg);
+
+  svg.querySelectorAll('[data-node]').forEach(el => {
+    el.addEventListener('click', (e) => {
+      if (svg._dragged) return; // non aprire se stavo trascinando
       const id = el.getAttribute('data-node');
-      document.querySelector('.navbtn[data-page="listPage"]').click();
+      goToPage('listPage');
       setTimeout(() => {
         const target = document.getElementById('note-' + id);
         if (target) { target.scrollIntoView({ behavior: 'smooth', block: 'center' }); target.style.outline = '2px solid var(--accent)'; setTimeout(() => target.style.outline = 'none', 1200); }
@@ -690,6 +841,55 @@ function renderMap() {
     });
   });
 }
+
+function attachMapInteractions(svg) {
+  let dragging = false, lastX = 0, lastY = 0, pinchDist = 0;
+  const applyVB = () => svg.setAttribute('viewBox', `${mapView.vbX} ${mapView.vbY} ${mapView.vbW} ${mapView.vbH}`);
+  const zoomAt = (factor, cx, cy) => {
+    // cx,cy in coordinate schermo relative al box
+    const rect = svg.getBoundingClientRect();
+    const px = (cx - rect.left) / rect.width, py = (cy - rect.top) / rect.height;
+    const wx = mapView.vbX + px * mapView.vbW, wy = mapView.vbY + py * mapView.vbH;
+    let nw = mapView.vbW * factor, nh = mapView.vbH * factor;
+    nw = Math.max(120, Math.min(mapView.worldW * 3, nw));
+    nh = Math.max(120, Math.min(mapView.worldH * 3, nh));
+    mapView.vbX = wx - px * nw; mapView.vbY = wy - py * nh;
+    mapView.vbW = nw; mapView.vbH = nh;
+    applyVB();
+  };
+
+  svg.addEventListener('wheel', (e) => { e.preventDefault(); zoomAt(e.deltaY > 0 ? 1.12 : 0.89, e.clientX, e.clientY); }, { passive: false });
+
+  svg.addEventListener('pointerdown', (e) => { dragging = true; svg._dragged = false; lastX = e.clientX; lastY = e.clientY; svg.setPointerCapture(e.pointerId); });
+  svg.addEventListener('pointermove', (e) => {
+    if (!dragging) return;
+    const dx = e.clientX - lastX, dy = e.clientY - lastY;
+    if (Math.abs(dx) > 3 || Math.abs(dy) > 3) svg._dragged = true;
+    const rect = svg.getBoundingClientRect();
+    mapView.vbX -= dx / rect.width * mapView.vbW;
+    mapView.vbY -= dy / rect.height * mapView.vbH;
+    lastX = e.clientX; lastY = e.clientY;
+    applyVB();
+  });
+  svg.addEventListener('pointerup', () => { dragging = false; });
+  svg.addEventListener('pointercancel', () => { dragging = false; });
+
+  // pinch-to-zoom touch
+  const touches = new Map();
+  svg.addEventListener('touchstart', (e) => { for (const t of e.changedTouches) touches.set(t.identifier, t); }, { passive: true });
+  svg.addEventListener('touchmove', (e) => {
+    if (e.touches.length === 2) {
+      e.preventDefault();
+      const [a, b] = [e.touches[0], e.touches[1]];
+      const dist = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+      const midX = (a.clientX + b.clientX) / 2, midY = (a.clientY + b.clientY) / 2;
+      if (pinchDist) zoomAt(pinchDist / dist, midX, midY);
+      pinchDist = dist;
+    }
+  }, { passive: false });
+  svg.addEventListener('touchend', (e) => { if (e.touches.length < 2) pinchDist = 0; }, { passive: true });
+}
+
 
 function escapeHtml(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function escapeAttr(s) { return escapeHtml(s); }
@@ -699,18 +899,21 @@ document.getElementById('input').addEventListener('keydown', e => {
   if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) saveNote();
 });
 
+function goToPage(target) {
+  document.querySelectorAll('.navbtn').forEach(b => b.classList.toggle('active', b.getAttribute('data-page') === target));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(target).classList.add('active');
+  document.getElementById('saveBtn').style.display = (target === 'writePage') ? 'flex' : 'none';
+  if (target === 'mapPage') renderMap();
+  if (target === 'catPage') renderCategories();
+  if (target === 'todoPage') renderTodos();
+}
+
 document.querySelectorAll('.navbtn').forEach(btn => {
-  btn.onclick = () => {
-    document.querySelectorAll('.navbtn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    const target = btn.getAttribute('data-page');
-    document.getElementById(target).classList.add('active');
-    document.getElementById('saveBtn').style.display = (target === 'writePage') ? 'flex' : 'none';
-    if (target === 'mapPage') renderMap();
-    if (target === 'catPage') renderCategories();
-  };
+  btn.onclick = () => goToPage(btn.getAttribute('data-page'));
 });
+
+document.getElementById('bellBtn').onclick = () => goToPage('todoPage');
 
 
 document.getElementById('micHint').textContent = 'usa il microfono della tastiera per dettare qui dentro';
